@@ -6,28 +6,47 @@ function App() {
 
   const [turfs, setTurfs] = useState([]);
   const [selectedTurf, setSelectedTurf] = useState(null);
+
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState("");
+
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
+
   const [bookingSuccess, setBookingSuccess] = useState(false);
+
+
+  // Get all turfs
   useEffect(() => {
+
     axios
-      .get("http://localhost:8080/api/turfs")
+      .get("https://turfify-backend.onrender.com/api/turfs")
+
       .then((response) => {
         setTurfs(response.data);
       })
+
       .catch((error) => {
-        console.error(error);
+        console.error("Error fetching turfs:", error);
       });
+
   }, []);
 
+
+  // Select turf
   const selectTurf = (turf) => {
+
     setSelectedTurf(turf);
+
     setDate("");
     setSlots([]);
     setSelectedSlot("");
+
+    setName("");
+    setMobile("");
+
+    setBookingSuccess(false);
 
     window.scrollTo({
       top: 0,
@@ -35,6 +54,8 @@ function App() {
     });
   };
 
+
+  // Select date
   const handleDateChange = (event) => {
 
     const selectedDate = event.target.value;
@@ -49,50 +70,83 @@ function App() {
 
     axios
       .get(
-        `http://localhost:8080/api/bookings/available-slots?turfId=${selectedTurf.id}&date=${selectedDate}`
+        `https://turfify-backend.onrender.com/api/bookings/available-slots?turfId=${selectedTurf.id}&date=${selectedDate}`
       )
+
       .then((response) => {
         setSlots(response.data);
       })
+
       .catch((error) => {
-        console.error(error);
+        console.error("Error fetching slots:", error);
         setSlots([]);
       });
   };
-const handleBooking = () => {
 
-  if (!name || !mobile) {
-    alert("Please enter your name and mobile number");
-    return;
-  }
 
-  if (!selectedSlot) {
-    alert("Please select a time slot");
-    return;
-  }
+  // Confirm booking
+  const handleBooking = () => {
 
-  const bookingData = {
-    turfId: selectedTurf.id,
-    bookingDate: date,
-    timeSlot: selectedSlot,
-    customerName: name,
-    mobile: mobile
+    if (!name.trim()) {
+      alert("Please enter your name");
+      return;
+    }
+
+    if (!mobile.trim()) {
+      alert("Please enter your mobile number");
+      return;
+    }
+
+    if (!selectedSlot) {
+      alert("Please select a time slot");
+      return;
+    }
+
+
+    const bookingData = {
+
+      turfId: selectedTurf.id,
+
+      bookingDate: date,
+
+      timeSlot: selectedSlot,
+
+      customerName: name,
+
+      mobile: mobile
+
+    };
+
+
+    axios
+      .post(
+        "https://turfify-backend.onrender.com/api/bookings",
+        bookingData
+      )
+
+      .then(() => {
+
+        setBookingSuccess(true);
+
+      })
+
+      .catch((error) => {
+
+        console.error("Booking error:", error);
+
+        alert("Booking failed. Please try again.");
+
+      });
+
   };
 
-  axios
-    .post("http://localhost:8080/api/bookings", bookingData)
-    .then(() => {
-      setBookingSuccess(true);
-    })
-    .catch((error) => {
-      console.error(error);
-      alert("Booking failed. Please try again.");
-    });
-};
+
   return (
+
     <div className="app">
 
-      {/* Navbar */}
+
+      {/* ================= NAVBAR ================= */}
 
       <nav className="navbar">
 
@@ -101,16 +155,25 @@ const handleBooking = () => {
         </div>
 
         <div className="nav-links">
-          <a href="#turfs">Turfs</a>
-          <a href="#about">About</a>
+
+          <a href="#turfs">
+            Turfs
+          </a>
+
+          <a href="#about">
+            About
+          </a>
+
         </div>
 
       </nav>
 
 
-      {/* Booking Section */}
+      {/* =====================================================
+          BOOKING PAGE
+      ===================================================== */}
 
-      {selectedTurf && (
+      {selectedTurf && !bookingSuccess && (
 
         <section className="booking-section">
 
@@ -121,22 +184,25 @@ const handleBooking = () => {
             ← Back to Turfs
           </button>
 
+
           <div className="booking-card">
+
+            {/* Turf information */}
 
             <h2>
               Book {selectedTurf.name}
             </h2>
 
-            <p>
+            <p className="booking-location">
               📍 {selectedTurf.location}
             </p>
 
-            <p>
+            <p className="booking-price">
               ₹{selectedTurf.price} / hour
             </p>
 
 
-            {/* Date */}
+            {/* DATE */}
 
             <div className="form-group">
 
@@ -147,14 +213,18 @@ const handleBooking = () => {
               <input
                 type="date"
                 value={date}
-                min={new Date().toISOString().split("T")[0]}
+                min={
+                  new Date()
+                    .toISOString()
+                    .split("T")[0]
+                }
                 onChange={handleDateChange}
               />
 
             </div>
 
 
-            {/* Slots */}
+            {/* TIME SLOTS */}
 
             {date && (
 
@@ -163,6 +233,7 @@ const handleBooking = () => {
                 <h3>
                   Available Time Slots
                 </h3>
+
 
                 <div className="slots">
 
@@ -177,9 +248,14 @@ const handleBooking = () => {
                             ? "slot selected"
                             : "slot"
                         }
-                        onClick={() => setSelectedSlot(slot)}
+
+                        onClick={() =>
+                          setSelectedSlot(slot)
+                        }
                       >
+
                         {slot}
+
                       </button>
 
                     ))
@@ -198,59 +274,174 @@ const handleBooking = () => {
 
             )}
 
+
+            {/* CUSTOMER DETAILS */}
+
+            {selectedSlot && (
+
+              <div className="customer-form">
+
+                <h3>
+                  Your Details
+                </h3>
+
+
+                {/* NAME */}
+
+                <div className="form-group">
+
+                  <label>
+                    Name
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(event) =>
+                      setName(event.target.value)
+                    }
+                  />
+
+                </div>
+
+
+                {/* MOBILE */}
+
+                <div className="form-group">
+
+                  <label>
+                    Mobile Number
+                  </label>
+
+                  <input
+                    type="tel"
+                    placeholder="Enter your mobile number"
+                    value={mobile}
+                    onChange={(event) =>
+                      setMobile(event.target.value)
+                    }
+                  />
+
+                </div>
+
+
+                {/* CONFIRM */}
+
+                <button
+                  className="confirm-button"
+                  onClick={handleBooking}
+                >
+
+                  Confirm Booking
+
+                </button>
+
+              </div>
+
+            )}
+
           </div>
 
         </section>
 
       )}
 
-{selectedSlot && !bookingSuccess && (
 
-  <div className="customer-form">
+      {/* =====================================================
+          BOOKING SUCCESS
+      ===================================================== */}
 
-    <h3>Your Details</h3>
+      {bookingSuccess && (
 
-    <div className="form-group">
+        <section className="booking-section">
 
-      <label>Name</label>
+          <div className="booking-card booking-success">
 
-      <input
-        type="text"
-        placeholder="Enter your name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+            <div className="success-icon">
+              ✓
+            </div>
 
-    </div>
+            <h2>
+              Booking Confirmed!
+            </h2>
 
-    <div className="form-group">
+            <p>
+              Your turf has been successfully booked.
+            </p>
 
-      <label>Mobile Number</label>
 
-      <input
-        type="tel"
-        placeholder="Enter your mobile number"
-        value={mobile}
-        onChange={(e) => setMobile(e.target.value)}
-      />
+            <div className="booking-summary">
 
-    </div>
+              <p>
+                <strong>Turf</strong>
+                <br />
+                {selectedTurf.name}
+              </p>
 
-    <button
-      className="confirm-button"
-      onClick={handleBooking}
-    >
-      Confirm Booking
-    </button>
+              <p>
+                <strong>Location</strong>
+                <br />
+                📍 {selectedTurf.location}
+              </p>
 
-  </div>
+              <p>
+                <strong>Date</strong>
+                <br />
+                📅 {date}
+              </p>
 
-)}
-      {/* Hero */}
+              <p>
+                <strong>Time</strong>
+                <br />
+                ⏰ {selectedSlot}
+              </p>
+
+              <p>
+                <strong>Name</strong>
+                <br />
+                👤 {name}
+              </p>
+
+              <p>
+                <strong>Mobile</strong>
+                <br />
+                📱 {mobile}
+              </p>
+
+            </div>
+
+
+            <button
+              className="home-button"
+              onClick={() => {
+
+                setSelectedTurf(null);
+                setBookingSuccess(false);
+
+              }}
+            >
+
+              Back to Turfs
+
+            </button>
+
+          </div>
+
+        </section>
+
+      )}
+
+
+      {/* =====================================================
+          HOME PAGE
+      ===================================================== */}
 
       {!selectedTurf && (
 
         <>
+
+          {/* HERO */}
 
           <section className="hero">
 
@@ -266,8 +457,8 @@ const handleBooking = () => {
               </h1>
 
               <p className="hero-description">
-                Book premium football turfs around Chennai
-                in just a few clicks.
+                Book premium football turfs around
+                Chennai in just a few clicks.
               </p>
 
               <a
@@ -282,7 +473,7 @@ const handleBooking = () => {
           </section>
 
 
-          {/* Turfs */}
+          {/* TURFS */}
 
           <section
             className="turf-section"
@@ -311,6 +502,9 @@ const handleBooking = () => {
                   key={turf.id}
                 >
 
+
+                  {/* IMAGE */}
+
                   <div className="turf-image">
 
                     <img
@@ -320,6 +514,8 @@ const handleBooking = () => {
 
                   </div>
 
+
+                  {/* INFORMATION */}
 
                   <div className="turf-info">
 
@@ -356,9 +552,13 @@ const handleBooking = () => {
 
 
                       <button
-                        onClick={() => selectTurf(turf)}
+                        onClick={() =>
+                          selectTurf(turf)
+                        }
                       >
+
                         Book Now
+
                       </button>
 
                     </div>
@@ -374,7 +574,7 @@ const handleBooking = () => {
           </section>
 
 
-          {/* Footer */}
+          {/* FOOTER */}
 
           <footer id="about">
 
@@ -395,38 +595,11 @@ const handleBooking = () => {
         </>
 
       )}
-      {bookingSuccess && (
-
-  <section className="booking-section">
-
-    <div className="booking-card booking-success">
-
-      <h2>🎉 Booking Confirmed!</h2>
-
-      <p>Your turf has been successfully booked.</p>
-
-      <p>
-        <strong>{selectedTurf.name}</strong>
-      </p>
-
-      <p>📍 {selectedTurf.location}</p>
-
-      <p>📅 {date}</p>
-
-      <p>⏰ {selectedSlot}</p>
-
-      <p>👤 {name}</p>
-
-      <p>📱 {mobile}</p>
 
     </div>
 
-  </section>
-
-)}
-
-    </div>
   );
+
 }
 
 export default App;
